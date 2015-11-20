@@ -343,6 +343,7 @@ JhipsterGenerator.prototype.askFor = function askFor() {
           choices: [
                     {name: 'Gatling', value: 'gatling'},
                     {name: 'Cucumber', value: 'cucumber'}
+                    //{name: 'Protractor', value: 'protractor'}
           ],
           default: [ 'gatling' ]
         }
@@ -1068,6 +1069,12 @@ JhipsterGenerator.prototype.app = function app() {
     if (this.authenticationType == 'session') {
         testTemplates.push('spec/app/account/sessions/_sessions.controller.spec.js');
     }
+    // Create Protractor test files
+    if (this.testFrameworks.indexOf('protractor') != -1) {
+        testTemplates.push('e2e/_account.js');
+        testTemplates.push('e2e/_administration.js');
+        testTemplates.push('_protractor.conf.js')
+    }
     testTemplates.map(function(testTemplatePath) {
         this.template(testJsDir + testTemplatePath, testJsDir + testTemplatePath.replace(/_/,''), this, {});
     }.bind(this));
@@ -1112,6 +1119,7 @@ JhipsterGenerator.prototype.app = function app() {
         'scripts/components/alert/alert.directive.js',
         'scripts/components/util/parse-links.service.js',
         'scripts/components/util/dateutil.service.js',
+        'scripts/components/util/data-util.service.js',
         'scripts/app/account/account.js',
         'scripts/app/account/activate/activate.js',
         'scripts/app/account/activate/activate.controller.js',
