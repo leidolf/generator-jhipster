@@ -54,6 +54,7 @@ var EntityGenerator = module.exports = function EntityGenerator(args, options, c
     }
     this.angularAppName = _s.camelize(_s.slugify(this.baseName)) + 'App';
     this.jhipsterConfigDirectory = '.jhipster';
+    this.name = this.name.replace('.json','');
     this.filename = this.jhipsterConfigDirectory + '/' + _s.capitalize(this.name) + '.json';
     if (shelljs.test('-f', this.filename)) {
         console.log(chalk.green('Found the ' + this.filename + ' configuration file, automatically generating the entity'));
@@ -106,6 +107,7 @@ var EntityGenerator = module.exports = function EntityGenerator(args, options, c
     this.pagination = 'no';
     this.validation = false;
     this.dto = 'no';
+    this.service = 'no';
 };
 
 var fieldNamesUnderscored = ['id'];
@@ -810,6 +812,39 @@ EntityGenerator.prototype.askForDTO = function askForDTO() {
     }.bind(this));
 };
 
+EntityGenerator.prototype.askForService = function askForService() {
+    if (this.useConfigurationFile == true) { // don't prompt if data are imported from a file
+        return;
+    }
+    var cb = this.async();
+    var prompts = [
+        {
+            type: 'list',
+            name: 'service',
+            message: 'Do you want to use separate service class for your business logic?',
+            choices: [
+                {
+                    value: 'no',
+                    name: 'No, the REST controller should use the repository directly'
+                },
+                {
+                    value: 'serviceClass',
+                    name: '[BETA] Yes, generate a separate service class'
+                },
+                {
+                    value: 'serviceImpl',
+                    name: '[BETA] Yes, generate a separate service interface and implementation'
+                }
+            ],
+            default: 0
+        }
+    ];
+    this.prompt(prompts, function (props) {
+        this.service = props.service;
+        cb();
+    }.bind(this));
+};
+
 EntityGenerator.prototype.askForPagination = function askForPagination() {
     if (this.useConfigurationFile == true) { // don't prompt if data are imported from a file
         return;
@@ -855,21 +890,30 @@ EntityGenerator.prototype.files = function files() {
     // Expose utility methods in templates
     this.util = {};
     this.util.contains = _.contains;
-    var wordwrap = function(text, width){
+    var wordwrap = function(text, width, seperator, keepLF){
         var wrappedText = '';
         var rows = text.split('\n');
         for (var i = 0; i < rows.length; i++) {
             var row = rows[i];
-            wrappedText = wrappedText + '\n' + _s.wrap(row, { width: width });
+            if(keepLF == true && i != 0) {
+                wrappedText = wrappedText + '\\n';
+            }
+            wrappedText = wrappedText + seperator + _s.wrap(row, { width: width , seperator : seperator, preserveSpaces: keepLF });
         }
         return wrappedText;
     }
     var wordwrapWidth = 80;
     this.util.formatAsClassJavadoc = function (text) {
-        return '/**' + wordwrap(text, wordwrapWidth - 4).replace(/\n/g, '\n * ') + '\n */';
+        return '/**' + wordwrap(text, wordwrapWidth - 4, '\n * ', false) + '\n */';
     };
     this.util.formatAsFieldJavadoc = function (text) {
-        return '    /**' + wordwrap(text, wordwrapWidth - 8).replace(/\n/g, '\n     * ') + '\n     */';
+        return '    /**' + wordwrap(text, wordwrapWidth - 8, '\n     * ', false) + '\n     */';
+    };
+    this.util.formatAsApiModel = function (text) {
+        return wordwrap(text.replace(/\\/g, '\\\\').replace(/\"/g, '\\\"'), wordwrapWidth - 9, '"\n    + "', true)
+    };
+    this.util.formatAsApiModelProperty = function (text) {
+        return wordwrap(text.replace(/\\/g, '\\\\').replace(/\"/g, '\\\"'), wordwrapWidth - 13, '"\n        + "', true)
     };
 
     if (this.useConfigurationFile == false) { // store informations in a file for further use.
@@ -881,6 +925,7 @@ EntityGenerator.prototype.files = function files() {
         this.data.fields = this.fields;
         this.data.changelogDate = this.changelogDate;
         this.data.dto = this.dto;
+        this.data.service = this.service;
         if (databaseType == 'sql' || databaseType == 'mongodb') {
             this.data.pagination = this.pagination;
         }
@@ -890,6 +935,7 @@ EntityGenerator.prototype.files = function files() {
         this.fields = this.fileData.fields;
         this.changelogDate = this.fileData.changelogDate;
         this.dto = this.fileData.dto;
+        this.service = this.fileData.service;
         this.pagination = this.fileData.pagination;
         this.javadoc = this.fileData.javadoc;
 
@@ -1006,6 +1052,10 @@ EntityGenerator.prototype.files = function files() {
         if (_.isUndefined(this.dto)) {
             console.log(chalk.yellow('WARNING dto is missing in .jhipster/' + this.name + '.json, using no as fallback'));
             this.dto = 'no';
+        }
+        if (_.isUndefined(this.service)) {
+            console.log(chalk.yellow('WARNING service is missing in .jhipster/' + this.name + '.json, using no as fallback'));
+            this.service = 'no';
         }
         if (_.isUndefined(this.pagination)) {
             if (databaseType == 'sql' || databaseType == 'mongodb') {
@@ -1157,7 +1207,11 @@ EntityGenerator.prototype.files = function files() {
             this.validation = true;
         }
     }
-
+    if (this.databaseType === 'cassandra' || this.databaseType === 'mongodb') {
+        this.pkType = 'String';
+    } else {
+        this.pkType = 'Long';
+    }
     this.entityClass = _s.capitalize(this.name);
     this.entityInstance = _s.decapitalize(this.name);
     this.entityTableName = _s.underscored(this.name).toLowerCase();
@@ -1181,6 +1235,7 @@ EntityGenerator.prototype.files = function files() {
     insight.track('entity/relationships', this.relationships.length);
     insight.track('entity/pagination', this.pagination);
     insight.track('entity/dto', this.dto);
+    insight.track('entity/service', this.service);
 
     var resourceDir = 'src/main/resources/';
 
@@ -1216,6 +1271,7 @@ EntityGenerator.prototype.files = function files() {
                 this.copyEnumI18n('pl', enumInfo);
                 this.copyEnumI18n('pt-br', enumInfo);
                 this.copyEnumI18n('pt-pt', enumInfo);
+                this.copyEnumI18n('ro', enumInfo);
                 this.copyEnumI18n('ru', enumInfo);
                 this.copyEnumI18n('es', enumInfo);
                 this.copyEnumI18n('sv', enumInfo);
@@ -1238,7 +1294,15 @@ EntityGenerator.prototype.files = function files() {
 
     this.template('src/main/java/package/web/rest/_EntityResource.java',
         'src/main/java/' + this.packageFolder + '/web/rest/' +    this.entityClass + 'Resource.java', this, {});
-
+    if (this.service == 'serviceImpl') {
+        this.template('src/main/java/package/service/_EntityService.java',
+            'src/main/java/' + this.packageFolder + '/service/' +    this.entityClass + 'Service.java', this, {});
+        this.template('src/main/java/package/service/impl/_EntityServiceImpl.java',
+            'src/main/java/' + this.packageFolder + '/service/impl/' +    this.entityClass + 'ServiceImpl.java', this, {});
+    } else if(this.service == 'serviceClass') {
+        this.template('src/main/java/package/service/impl/_EntityServiceImpl.java',
+            'src/main/java/' + this.packageFolder + '/service/' +    this.entityClass + 'Service.java', this, {});
+    }
     if (this.dto == 'mapstruct') {
         this.template('src/main/java/package/web/rest/dto/_EntityDTO.java',
             'src/main/java/' + this.packageFolder + '/web/rest/dto/' +    this.entityClass + 'DTO.java', this, {});
@@ -1267,35 +1331,35 @@ EntityGenerator.prototype.files = function files() {
     this.copyHtml('src/main/webapp/app/_entity-delete-dialog.html',
         'src/main/webapp/scripts/app/entities/' +    this.entityInstance  + '/' + this.entityInstance + '-delete-dialog.html', this, {}, true);
 
-    this.addRouterToMenu(this.entityInstance, this.enableTranslation);
+    this.addEntityToMenu(this.entityInstance, this.enableTranslation);
 
     this.template('src/main/webapp/app/_entity.js',
         'src/main/webapp/scripts/app/entities/' +    this.entityInstance + '/' + this.entityInstance + '.js', this, {});
-    this.addAppScriptToIndex(this.entityInstance + '/' + this.entityInstance + '.js');
+    this.addJavaScriptToIndex('app/entities/' + this.entityInstance + '/' + this.entityInstance + '.js');
     this.template('src/main/webapp/app/_entity-controller.js',
         'src/main/webapp/scripts/app/entities/' +    this.entityInstance + '/' + this.entityInstance + '.controller' + '.js', this, {});
-    this.addAppScriptToIndex(this.entityInstance + '/' + this.entityInstance + '.controller' + '.js');
+    this.addJavaScriptToIndex('app/entities/' + this.entityInstance + '/' + this.entityInstance + '.controller' + '.js');
     this.template('src/main/webapp/app/_entity-dialog-controller.js',
         'src/main/webapp/scripts/app/entities/' +    this.entityInstance + '/' + this.entityInstance + '-dialog.controller' + '.js', this, {});
-    this.addAppScriptToIndex(this.entityInstance + '/' + this.entityInstance + '-dialog.controller' + '.js');
+    this.addJavaScriptToIndex('app/entities/' + this.entityInstance + '/' + this.entityInstance + '-dialog.controller' + '.js');
     this.template('src/main/webapp/app/_entity-delete-dialog-controller.js',
         'src/main/webapp/scripts/app/entities/' +    this.entityInstance + '/' + this.entityInstance + '-delete-dialog.controller' + '.js', this, {});
-    this.addAppScriptToIndex(this.entityInstance + '/' + this.entityInstance + '-delete-dialog.controller' + '.js');
+    this.addJavaScriptToIndex('app/entities/' + this.entityInstance + '/' + this.entityInstance + '-delete-dialog.controller' + '.js');
 
     this.template('src/main/webapp/app/_entity-detail-controller.js',
         'src/main/webapp/scripts/app/entities/' +    this.entityInstance + '/' + this.entityInstance + '-detail.controller' + '.js', this, {});
     this.template('src/test/javascript/spec/app/_entity-detail-controller.spec.js',
         'src/test/javascript/spec/app/entities/' +    this.entityInstance + '/' + this.entityInstance + '-detail.controller.spec.js', this, {});
-    this.addAppScriptToIndex(this.entityInstance + '/' + this.entityInstance + '-detail.controller' + '.js');
+    this.addJavaScriptToIndex('app/entities/' + this.entityInstance + '/' + this.entityInstance + '-detail.controller' + '.js');
 
     this.template('src/main/webapp/components/_entity-service.js',
         'src/main/webapp/scripts/components/entities/' + this.entityInstance + '/' + this.entityInstance + '.service' + '.js', this, {});
-    this.addComponentsScriptToIndex(this.entityInstance + '/' + this.entityInstance + '.service' + '.js');
+    this.addJavaScriptToIndex('components/entities/' + this.entityInstance + '/' + this.entityInstance + '.service' + '.js');
 
     if (this.searchEngine == 'elasticsearch') {
         this.template('src/main/webapp/components/_entity-search-service.js',
             'src/main/webapp/scripts/components/entities/' + this.entityInstance + '/' + this.entityInstance + '.search.service' + '.js', this, {});
-        this.addComponentsScriptToIndex(this.entityInstance + '/' + this.entityInstance + '.search.service' + '.js');
+        this.addJavaScriptToIndex('components/entities/' + this.entityInstance + '/' + this.entityInstance + '.search.service' + '.js');
     }
 
     this.template('src/test/java/package/web/rest/_EntityResourceIntTest.java',
@@ -1324,6 +1388,7 @@ EntityGenerator.prototype.files = function files() {
         this.copyI18n('pl');
         this.copyI18n('pt-br');
         this.copyI18n('pt-pt');
+        this.copyI18n('ro');
         this.copyI18n('ru');
         this.copyI18n('es');
         this.copyI18n('sv');
@@ -1337,7 +1402,7 @@ EntityGenerator.prototype.copyI18n = function(language) {
         var stats = fs.lstatSync('src/main/webapp/i18n/' + language);
         if (stats.isDirectory()) {
             this.template('src/main/webapp/i18n/_entity_' + language + '.json', 'src/main/webapp/i18n/' + language + '/' + this.entityInstance + '.json', this, {});
-            this.addNewEntityToMenu(language, this.entityInstance, this.entityClass);
+            this.addEntityTranslationKey(this.entityInstance, this.entityClass, language);
         }
     } catch(e) {
         // An exception is thrown if the folder doesn't exist

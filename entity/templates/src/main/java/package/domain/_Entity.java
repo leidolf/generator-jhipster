@@ -1,6 +1,20 @@
 package <%=packageName%>.domain;
 <% if (databaseType == 'cassandra') { %>
-import com.datastax.driver.mapping.annotations.*;<% } %><%
+import com.datastax.driver.mapping.annotations.*;<% } %><% if (typeof javadoc != 'undefined') { -%>
+import io.swagger.annotations.ApiModel;<% } %><%
+var importApiModelProperty = false;
+for (relationshipId in relationships) {
+    if (typeof relationships[relationshipId].javadoc != 'undefined') {
+        importApiModelProperty = true;
+    }
+}
+for (fieldId in fields) {
+    if (typeof fields[fieldId].javadoc != 'undefined') {
+        importApiModelProperty = true;
+    }
+}
+if (importApiModelProperty) { %>
+import io.swagger.annotations.ApiModelProperty;<% } %><%
 var importJsonignore = false;
 for (relationshipId in relationships) {
     if (relationships[relationshipId].relationshipType == 'one-to-many') {
@@ -48,6 +62,7 @@ import <%=packageName%>.domain.enumeration.<%= element %>;<% }); %>
  */
 <% } else { -%>
 <%- util.formatAsClassJavadoc(javadoc) %>
+@ApiModel(description = "<%- util.formatAsApiModel(javadoc) %>")
 <% } -%>
 <% if (databaseType == 'sql') { -%>
 @Entity
@@ -68,7 +83,8 @@ public class <%= entityClass %> implements Serializable {
 
 <%_ for (fieldId in fields) {
     if (typeof fields[fieldId].javadoc != 'undefined') { _%>
-<%- util.formatAsFieldJavadoc(fields[fieldId].javadoc) -%>
+<%- util.formatAsFieldJavadoc(fields[fieldId].javadoc) %>
+    @ApiModelProperty(value = "<%- util.formatAsApiModelProperty(fields[fieldId].javadoc) %>")
     <%_ }
     var required = false;
     if (fields[fieldId].fieldValidate == true) {
@@ -97,9 +113,10 @@ public class <%= entityClass %> implements Serializable {
     <%_ } _%>
     private <%= fields[fieldId].fieldType %> <%= fields[fieldId].fieldName %>;
 
-    <%_ if (fields[fieldId].fieldType == 'byte[]') { _%>
-
-    @Column(name = "<%=fields[fieldId].fieldNameUnderscored %>_content_type"<% if (required) { %>, nullable = false<% } %>)
+    <%_ if (fields[fieldId].fieldType == 'byte[]') { _%><%_ if (databaseType == 'sql') { _%>
+    @Column(name = "<%=fields[fieldId].fieldNameUnderscored %>_content_type"<% if (required) { %>, nullable = false<% } %>) <%_ } _%>
+    <% if (databaseType == 'mongodb') { %>@Field("<%=fields[fieldId].fieldNameUnderscored %>_content_type")
+    <%_ } _%>
     private String <%= fields[fieldId].fieldName %>ContentType;
     <%_ }
     }
@@ -114,7 +131,8 @@ public class <%= entityClass %> implements Serializable {
             mappedBy = otherEntityRelationshipName.charAt(0).toLowerCase() + otherEntityRelationshipName.slice(1)
         }
         if (typeof relationships[relationshipId].javadoc != 'undefined') { _%>
-<%- util.formatAsFieldJavadoc(relationships[relationshipId].javadoc) -%>
+<%- util.formatAsFieldJavadoc(relationships[relationshipId].javadoc) %>
+    @ApiModelProperty(value = "<%- util.formatAsApiModelProperty(relationships[relationshipId].javadoc) %>")
     <%_ }
         if (relationships[relationshipId].relationshipType == 'one-to-many') {
     _%>
@@ -147,9 +165,12 @@ public class <%= entityClass %> implements Serializable {
     private Set<<%= relationships[relationshipId].otherEntityNameCapitalized %>> <%= relationships[relationshipId].relationshipFieldName %>s = new HashSet<>();
 
     <%_ } else { _%>
-    @OneToOne<% if (relationships[relationshipId].ownerSide == false) { %>(mappedBy = "<%= relationships[relationshipId].otherEntityRelationshipName %>")
+    <%_     if (relationships[relationshipId].ownerSide) { _%>
+    @OneToOne
+    <%_    } else { _%>
+    @OneToOne(mappedBy = "<%= relationships[relationshipId].otherEntityRelationshipName %>")
     @JsonIgnore
-    <%_} _%>
+    <%_    } _%>
     private <%= relationships[relationshipId].otherEntityNameCapitalized %> <%= relationships[relationshipId].relationshipFieldName %>;
 
     <%_ } } _%>

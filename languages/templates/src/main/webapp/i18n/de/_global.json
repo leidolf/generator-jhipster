@@ -4,9 +4,10 @@
         "browsehappy": "Sie benutzen einen <strong>veralteten</strong> Browser. Bitte <a href=\"http://browsehappy.com/?locale=de/\">aktualisieren Sie Ihren Browser</a>, um die Benutzerfreundlichkeit zu erhöhen.",
         "menu": {
             "home": "Startseite",
+            "jhipster-needle-003": "JHipster will add additional menu entries here (do not translate!)",
             "entities": {
                 "main": "Entitäten",
-                "additionalEntity": "JHipster will add additional entities here (do not translate!)"
+                "jhipster-needle-004": "JHipster will add additional entities here (do not translate!)"
             },
             "account": {
                 "main": "Zugang",
@@ -27,7 +28,7 @@
                 "logs": "Protokoll",
                 "audits": "Audits",
                 "apidocs": "API",
-                "database": "Database"
+                "database": "Datenbank"
             },
             "language": "Sprache"
         },
@@ -75,8 +76,8 @@
     },
     "entity": {
         "action": {
-            "addblob": "Add blob",
-            "addimage": "Add image",
+            "addblob": "Blob hinzufügen",
+            "addimage": "Bild hinzufügen",
             "back": "Zurück",
             "cancel": "Abbrechen",
             "delete": "Löschen",
@@ -97,17 +98,20 @@
             "maxlength": "Dieses Feld darf max. {{max}} Zeichen lang sein.",
             "min": "Dieses Feld muss größer als {{min}} sein.",
             "max": "Dieses Feld muss kleiner als {{max}} sein.",
-            "minbytes": "This field should be more than {{min}} bytes.",
-            "maxbytes": "This field cannot be more than {{max}} bytes.",
+            "minbytes": "Dieses Feld sollte mehr als {{min}} bytes haben.",
+            "maxbytes": "Dieses Feld sollte nicht mehr als {{max}} bytes haben.",
             "pattern": "Dieses Feld muss das Muster {{pattern}} erfüllen.",
             "number": "Dieses Feld muss eine Zahl sein.",
             "datetimelocal": "Dieses Feld muss eine Datums- und Zeitangabe enthalten."
         }
     },
     "error": {
-        "serverNotReachable": "Server not reachable",
-        "NotNull": "Field {{fieldName}} cannot be empty!",
-        "Size": "Field {{fieldName}} does not meet min/max size requirements!"
+        "server.not.reachable": "Server ist nicht erreichbar",
+        "NotNull": "Feld {{fieldName}} kann nicht leer sein!",
+        "Size": "Feld {{fieldName}} erfüllt nicht die minimalen/maximalen Voraussetzungen!",
+        "userexists": "Login name already used!",
+        "emailexists": "E-mail is already in use!",
+        "idexists": "A new {{entityName}} cannot already have an ID"
     },
     "footer": "Dies ist Ihre Fußzeile"
 }

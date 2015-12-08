@@ -8,7 +8,13 @@ var parseVersionFromPomXml = function() {
     var version;
     var pomXml = fs.readFileSync('pom.xml', "utf8");
     parseString(pomXml, function (err, result){
-        version = result.project.version[0];
+        if (result.project.version && result.project.version[0]) {
+            version = result.project.version[0];
+        } else if (result.project.parent && result.project.parent[0] && result.project.parent[0].version && result.project.parent[0].version[0]) {
+            version = result.project.parent[0].version[0]
+        } else {
+            throw new Error('pom.xml is malformed. No version is defined');
+        }
     });
     return version;
 };<% } else { %>
@@ -300,7 +306,7 @@ module.exports = function (grunt) {
                 configFile: 'src/test/javascript/karma.conf.js',
                 singleRun: true
             }
-        },<% if (testFrameworks.indexOf('protractor')) { %>
+        },<% if (testFrameworks.indexOf('protractor') > -1) { %>
         protractor: {
             options: {
                 configFile: 'src/test/javascript/protractor.conf.js'
@@ -425,6 +431,6 @@ module.exports = function (grunt) {
         'buildcontrol:openshift'
     ]);
 
-    <% if (testFrameworks.indexOf('protractor')) { %>grunt.registerTask('itest', ['protractor:continuous']);<% } %>
+    <% if (testFrameworks.indexOf('protractor') > -1) { %>grunt.registerTask('itest', ['protractor:continuous']);<% } %>
     grunt.registerTask('default', ['serve']);
 };

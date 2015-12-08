@@ -4,9 +4,10 @@
         "browsehappy": "Du använder en <strong>gammal webbläsare</strong>. <a href=\"http://browsehappy.com/?locale=en\">Uppgradera din webbläsare</a> för bästa upplevelse.",
         "menu": {
             "home": "Hem",
+            "jhipster-needle-003": "JHipster will add additional menu entries here (do not translate!)",
             "entities": {
                 "main": "Entiter",
-                "additionalEntity": "JHipster will add additional entities here (do not translate!)"
+                "jhipster-needle-004": "JHipster will add additional entities here (do not translate!)"
             },
             "account": {
                 "main": "Konto",
@@ -105,9 +106,12 @@
         }
     },
     "error": {
-        "serverNotReachable": "Server not reachable",
-        "NotNull": "Field {{fieldName}} cannot be empty!",
-        "Size": "Field {{fieldName}} does not meet min/max size requirements!"
+        "server.not.reachable": "Servern kan inte nås",
+        "NotNull": "Fält {{fieldName}} kan inte vara tomt!",
+        "Size": "Fält {{fieldName}} uppfyller inte min/max-storlekskravet!",
+        "userexists": "Användarnamnet är upptaget!",
+        "emailexists": "E-postadressen är redan registrerad!",
+        "idexists": "En ny {{entityName}} kan inte redan ha ett ID"
     },
     "footer": "Detta är din footer"
 }
